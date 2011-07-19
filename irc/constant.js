@@ -8,7 +8,7 @@ var _rc_data = [
     [313,U,1,'RPL_WHOISOPERATOR'],
 
     [317,U,1,'RPL_WHOISACCOUNT'],
-    [318,U,1,'RPL_CHANNELMODEIS'],
+    [318,U,1,'RPL_ENDOFWHOIS'],
     
     [324,C,1,'RPL_CHANNELMODEIS'],
     [330,U,1,'RPL_WHOISACCOUNT'],
