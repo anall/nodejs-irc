@@ -8,70 +8,8 @@ var RESPONSE_CODES = exports.RESPONSE_CODES = _const.RESPONSE_CODES;
 var CR = '\n';
 
 var LineTokenizer = require('./line_tokenizer.js').LineTokenizer;
-
-function IRCMessage(data) {
-    this._raw = data;
-
-    var idx = data.indexOf(" ");
-    if (data.charAt(0) == ':' && idx != -1) {
-        this.source = data.substr(1,idx-1);
-        data = data.substr(idx+1); 
-        idx = data.indexOf(" ");
-        this.server = this.source;
-
-        IRCMessage.parseNickParts(this.source, this);
-    }
-
-    var parts = [];
-
-    while ( data.length > 0 ) {
-        var slurp = ( data.charAt(0) == ':' );
-        if ( slurp ) {
-            parts.push( data.substr(1) );
-            data = "";
-        } else if ( ( idx = data.indexOf(" ") ) != -1 ) {
-            parts.push( data.substr(0,idx) );
-            data = data.substr(idx+1);
-        } else {
-            parts.push( data );
-            data = "";
-        }
-    };
-
-    this.command = parts.shift();
-    this.args = parts;
-}
-exports.IRCMessage = IRCMessage;
-
-IRCMessage.parseNickParts = function(full, sv) {
-    if ( !sv ) { sv = {}; }
-
-    sv.nickname = undefined;
-    sv.username = undefined;
-    sv.server = full;
-
-    var idx = full.indexOf("@");
-    if ( idx != -1 ) {
-        var nick = sv.nickname = full.substr(0,idx);
-        sv.server = full.substr(idx+1);
-
-        idx = nick.indexOf("!");
-        if ( idx != -1 ) {
-            sv.username = nick.substr(idx+1);
-            sv.nickname = nick.substr(0,idx);
-        }
-    }
-
-    return sv;
-}
-
-IRCMessage.prototype.getNickParts = function() {
-    return {
-        nickname: this.nickname,
-        username: this.username,
-        server: this.server
-    };
-}
+var Message = require('./message.js').Message;
+var NickParts = require('./nick_parts.js').NickParts;
 
 function IRCChannel(_client, channel) {
     this._client = _client;
@@ -121,7 +59,7 @@ IRCChannel.prototype.gotMessage = function(message) {
         this.topic.text = message.args[2];
     } else if ( message.command == "333" ) {
         this.topic.set = new Date(message.args[3] * 1000);
-        IRCMessage.parseNickParts(message.args[2], this.topic.set_by);
+        this.topic.set_by = new NickParts(message.args[2]);
     } else if ( message.command == "353" ) {
         var data = message.args[3];
         var parts = data.split(" ");
@@ -155,7 +93,7 @@ IRCChannel.prototype.gotMessage = function(message) {
         this._parseModeMessage(message,1);
     } else if ( message.command == "TOPIC" ) {
         this.topic.text = message.args[1];
-        this.topic.set_by = message.getNickParts();
+        this.topic.set_by = message;
         this.topic.set = new Date();
     } else if ( message.command == "PART" ) {
         delete this.members[message.nickname.toLowerCase()];
@@ -359,7 +297,7 @@ var __channelMessages = {
 };
 
 IRCClient.prototype._gotData = function(data) { 
-    var message = new IRCMessage(data);
+    var message = new Message(data);
     this.emit('rawMessage',message);
     if ( this._preconnect ) {
         if ( message.command == ERROR_CODES.ERR_NONICKNAMEGIVEN || message.command == ERROR_CODES.ERR_ERRORNEUSNICKNAME ) {
