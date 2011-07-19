@@ -1,5 +1,6 @@
 var U = 'U';
 var C = 'C';
+var B = 'B';
 var _ = undefined;
 
 var _rc_data = [
@@ -32,6 +33,8 @@ var _rc_data = [
     ['JOIN',        C,0],
     ['TOPIC',       C,0],
     ['PART',        C,0],
+
+    ['MODE',        B,0],
 ];
 
 exports.ERROR_CODES = new _twm({
@@ -84,7 +87,8 @@ exports.ERROR_CODES = new _twm({
 var rc_out = {};
 var rr = {
     'U': {},
-    'C': {}
+    'C': {},
+    'B': {}
 };
 
 for ( var i = 0; i < _rc_data.length; i++ ) {

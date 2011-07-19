@@ -231,6 +231,14 @@ Client.prototype._gotData = function(data) {
         } else if ( _rd['U'].hasOwnProperty(message.command) ) {
             this.getUser(
                 message.args[_rd['U'][message.command]]).gotMessage(message);
+        } else if ( _rd['B'].hasOwnProperty(message.command) ) {
+            var target = message.args[0];
+            var pos = _rd['B'][message.command];
+            if ( target.match(/^[a-zA-Z0-9_]/) ) {
+                this.getUser(message.args[pos]).gotMessage(message);
+            } else {
+                this.getChannel(message.args[pos]).gotMessage(message);
+            }
         } else if ( message.command == "NICK" ) {
             var source = message.source.nickname.toLowerCase();
             var dest = message.args[0].toLowerCase();
@@ -248,13 +256,6 @@ Client.prototype._gotData = function(data) {
                 this.getUser(message.args[0]).gotMessage(message);
             } else {
                 message.getUser(this).updateForMessage(message);
-                this.getChannel(message.args[0]).gotMessage(message);
-            }
-        } else if ( message.command == "MODE" ) {
-            var target = message.args[0];
-            if ( target.match(/^[a-zA-Z0-9_]/) ) {
-                this.getUser(message.args[0]).gotMessage(message);
-            } else {
                 this.getChannel(message.args[0]).gotMessage(message);
             }
         }
