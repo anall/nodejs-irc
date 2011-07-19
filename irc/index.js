@@ -5,6 +5,7 @@ var util = require('util');
 var _const = require("./constant.js");
 var ERROR_CODES = exports.ERROR_CODES = _const.ERROR_CODES;
 var RESPONSE_CODES = exports.RESPONSE_CODES = _const.RESPONSE_CODES;
+var _rd = _const.RESPONSE_DISPATCH;
 
 var LineTokenizer = require('./line_tokenizer.js').LineTokenizer;
 var Message = require('./message.js').Message;
@@ -224,10 +225,12 @@ Client.prototype._gotData = function(data) {
             this._parseIsSupport(message);
         } else if ( message.command == "PING" ) {
             this.quote("PONG :" + message.args[0]);
-        } else if ( Channel._messages.hasOwnProperty(message.command) ) {
-            this.getChannel(message.args[Channel._messages[message.command][0]]).gotMessage(message);
-        } else if ( User._messages.hasOwnProperty(message.command) ) {
-            this.getUser(message.args[User._messages[message.command][0]]).gotMessage(message);
+        } else if ( _rd['C'].hasOwnProperty(message.command) ) {
+            this.getChannel(
+                message.args[_rd['C'][message.command]]).gotMessage(message);
+        } else if ( _rd['U'].hasOwnProperty(message.command) ) {
+            this.getUser(
+                message.args[_rd['U'][message.command]]).gotMessage(message);
         } else if ( message.command == "NICK" ) {
             var source = message.source.nickname.toLowerCase();
             var dest = message.args[0].toLowerCase();
@@ -245,6 +248,13 @@ Client.prototype._gotData = function(data) {
                 this.getUser(message.args[0]).gotMessage(message);
             } else {
                 message.getUser(this).updateForMessage(message);
+                this.getChannel(message.args[0]).gotMessage(message);
+            }
+        } else if ( message.command == "MODE" ) {
+            var target = message.args[0];
+            if ( target.match(/^[a-zA-Z0-9_]/) ) {
+                this.getUser(message.args[0]).gotMessage(message);
+            } else {
                 this.getChannel(message.args[0]).gotMessage(message);
             }
         }

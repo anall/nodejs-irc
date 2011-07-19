@@ -16,32 +16,34 @@ function User(_client, user) {
 util.inherits(User, EventEmitter);
 exports.User = User;
 
-User._messages = _const.__rprase([
-    [RC.RPL_WHOISUSER, 1, function (message) {      // 311
-        this.source = NickParts.fromWhois(message);
-        this.whois.fullname = message.args[5];
-    }],
-    [RC.RPL_WHOISSERVER, 1, function (message) {    // 312
-        this.whois.server = message.args[2];
-        this.whois.server_desc = message.args[3];
-    }],
-    // 313: 1, // RPL_WHOISOPERATOR
-    // 317: 1, // RPL_WHOISIDLE
-    [RC.RPL_ENDOFWHOIS, 1, function (message) {     // 318
-        this.whois.pending = 0;
-        this.whois.loaded = new Date();
-        this.emit('whoisLoaded');
-    }],
-    [RC.RPL_WHOISACCOUNT, 1, function (message) {
-        this.whois.account = message.args[2];
-    }],
-]);
+var _f = {};
+_f[RC.RPL_WHOISUSER] = function (message) {      // 311
+    this.source = NickParts.fromWhois(message);
+    this.whois.fullname = message.args[5];
+};
+
+_f[RC.RPL_WHOISSERVER] = function (message) {    // 312
+    this.whois.server = message.args[2];
+    this.whois.server_desc = message.args[3];
+};
+
+// 313: 1, // RPL_WHOISOPERATOR
+// 317: 1, // RPL_WHOISIDLE
+
+_f[RC.RPL_ENDOFWHOIS] = function (message) {     // 318
+    this.whois.pending = 0;
+    this.whois.loaded = new Date();
+    this.emit('whoisLoaded');
+};
+_f[RC.RPL_WHOISACCOUNT] = function (message) {
+    this.whois.account = message.args[2];
+};
 
 User.prototype.gotMessage = function(message) {
     if ( message.command == "NICK" ) {
         this.source.nickname = message.args[0];
-    } else if ( User._messages.hasOwnProperty(message.command) && User._messages[message.command][1] ) {
-        User._messages[message.command][1].call(this,message);
+    } else if ( _f.hasOwnProperty(message.command) ) {
+        _f[message.command].call(this,message);
     }
 };
 

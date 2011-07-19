@@ -1,21 +1,32 @@
-function _twm(data) {
-    for ( var x in data ) {
-        this[x] = data[x];
-        this[data[x]] = x;
-    }
-}
+var U = 'U';
+var C = 'C';
+var _ = undefined;
 
-exports.__rprase = function(d,ov) {
-    if ( !ov ) ov = {};
-    for ( var i = 0; i < d.length; i++ ) {
-        var rpos = d[i].shift();
-        if ( !rpos ) throw "Failure!";
-        ov[rpos] = d[i];
-    }
-    return ov;
-}
+var _rc_data = [
+    [311,U,1,'RPL_WHOISUSER'],
+    [312,U,1,'RPL_WHOISSERVER'],
+    [313,U,1,'RPL_WHOISOPERATOR'],
 
-var ERROR_CODES = new _twm({
+    [317,U,1,'RPL_WHOISACCOUNT'],
+    [318,U,1,'RPL_CHANNELMODEIS'],
+    
+    [324,C,1,'RPL_CHANNELMODEIS'],
+    [330,U,1,'RPL_WHOISACCOUNT'],
+
+    [332,C,1,'RPL_TOPIC'],
+    [333,C,1,'RPL_TOPICWHOTIME'],
+   
+    [353,C,2,'RPL_WHOSPCRPL'],
+
+    [366,C,1,'RPL_ENDOFNAMES'],
+    
+// Commands
+    ['JOIN',        C,0],
+    ['TOPIC',       C,0],
+    ['PART',        C,0],
+];
+
+exports.ERROR_CODES = new _twm({
     ERR_NOSUCHNICK: 401,
     ERR_NOSUCHSERVER: 402,
     ERR_NOSUCHCHANNEL: 403,
@@ -62,19 +73,32 @@ var ERROR_CODES = new _twm({
     ERR_USERSDONTMATCH: 502,
 });
 
-var RESPONSE_CODES = new _twm({
-    RPL_WHOISUSER: 311,
-    RPL_WHOISSERVER: 312,
-    RPL_ENDOFWHOIS: 318,
-    RPL_CHANNELMODEIS: 324,
-    RPL_WHOISACCOUNT: 330,
+var rc_out = {};
+var rr = {
+    'U': {},
+    'C': {}
+};
 
-    RPL_TOPIC: 332,
-    RPL_TOPICWHOTIME: 333,
-    RPL_WHOSPCRPL: 353, // ircu
+for ( var i = 0; i < _rc_data.length; i++ ) {
+    var v = _rc_data[i];
+    if ( v[3] ) {
+        rc_out[v[0]] = v[3];
+        rc_out[v[3]] = v[0];
+    }
+    if ( v[1] ) {
+        if ( !rr[v[1]] )
+            throw "Invalid code " + v[1] + " for " + v[0] + " ("+v[3]+")";
+        rr[v[1]][v[0]] = v[2];
+    }
+}
 
-    RPL_ENDOFNAMES: 366,
-});
+exports.RESPONSE_CODES = rc_out;
+exports.RESPONSE_DISPATCH = rr;
 
-exports.ERROR_CODES = ERROR_CODES;
-exports.RESPONSE_CODES = RESPONSE_CODES;
+function _twm(data) {
+    for ( var x in data ) {
+        this[x] = data[x];
+        this[data[x]] = x;
+    }
+}
+

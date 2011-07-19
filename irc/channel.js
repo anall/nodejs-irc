@@ -19,59 +19,47 @@ function Channel(_client, channel) {
 util.inherits(Channel, EventEmitter);
 exports.Channel = Channel;
 
-Channel._messages = {
-    'JOIN': 0,
-    'TOPIC': 0,
-    'PART': 0,
-    'MODE': 0,
-};
+var _f = {};
 
-Channel._messages = _const.__rprase([
-    [RC.RPL_CHANNELMODEIS, 1, function (message) {  // 324
-        this.modes = {};
-        this._parseModeMessage(message,2);
-    }],
-    [RC.RPL_TOPIC, 1, function (message) {          // 332
-        this.topic.text = message.args[2];
-    }],
-    [RC.RPL_TOPICWHOTIME, 1, function(message) {    // 333
-        this.topic.set = new Date(message.args[3] * 1000);
-        this.topic.set_by = NickParts.fromSource(message.args[2]);
-    }],
-    [RC.RPL_WHOSPCRPL, 2, function(message) {       // 353
-        var data = message.args[3];
-        var parts = data.split(" ");
-        for ( var i = 0; i < parts.length; i++ ) {
-            var un = parts[i];
-            var chr = "";
-            if ( ! un.match(/^[a-zA-Z0-9_]/) ) {
-                chr = un.charAt(0);
-                un = un.substr(1);
-            }
-            this._client.getUser(un,1);
-            un = un.toLowerCase();
-            this.members[un] = {};
-            if ( chr == '@' )
-                this.members[un].op = 1;
-            else if ( chr == '%' )
-                this.members[un].halfop = 1;
-            else if ( chr == '+' )
-                this.members[un].voice = 1;
+_f[RC.RPL_CHANNELMODEIS] = function (message) {  // 324
+    this.modes = {};
+    this._parseModeMessage(message,2);
+};
+_f[RC.RPL_TOPIC] = function (message) {          // 332
+    this.topic.text = message.args[2];
+};
+_f[RC.RPL_TOPICWHOTIME] = function(message) {    // 333
+    this.topic.set = new Date(message.args[3] * 1000);
+    this.topic.set_by = NickParts.fromSource(message.args[2]);
+};
+_f[RC.RPL_WHOSPCRPL] = function(message) {       // 353
+    var data = message.args[3];
+    var parts = data.split(" ");
+    for ( var i = 0; i < parts.length; i++ ) {
+        var un = parts[i];
+        var chr = "";
+        if ( ! un.match(/^[a-zA-Z0-9_]/) ) {
+            chr = un.charAt(0);
+            un = un.substr(1);
         }
-    }],
-    [RC.RPL_ENDOFNAMES, 1, function(message) {      // 366
-        if ( this._pending ) {
-            this._client.quote("MODE " + this.channel);
-            this._pending = 0;
-            this.emit('synced');
-        }
-    }],
-],{
-    'JOIN': [0],
-    'TOPIC': [0],
-    'PART': [0],
-    'MODE': [0],
-});
+        this._client.getUser(un,1);
+        un = un.toLowerCase();
+        this.members[un] = {};
+        if ( chr == '@' )
+            this.members[un].op = 1;
+        else if ( chr == '%' )
+            this.members[un].halfop = 1;
+        else if ( chr == '+' )
+            this.members[un].voice = 1;
+    }
+};
+_f[RC.RPL_ENDOFNAMES] = function(message) {      // 366
+    if ( this._pending ) {
+        this._client.quote("MODE " + this.channel);
+        this._pending = 0;
+        this.emit('synced');
+    }
+};
 
 
 Channel.prototype.join = function(key) {
@@ -94,8 +82,8 @@ Channel.prototype._reset = function() {
 }
 
 Channel.prototype.gotMessage = function(message) {
-    if ( Channel._messages.hasOwnProperty(message.command) && Channel._messages[message.command][1] ) {
-        Channel._messages[message.command][1].call(this,message);
+    if ( _f.hasOwnProperty(message.command) ) {
+        _f[message.command].call(this,message);
     } else if ( message.command == "JOIN" ) {
         if ( ! this._joined ) {
             this.channel = message.args[0];
