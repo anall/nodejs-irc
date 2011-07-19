@@ -3,22 +3,30 @@ var C = 'C';
 var _ = undefined;
 
 var _rc_data = [
-    [311,U,1,'RPL_WHOISUSER'],
-    [312,U,1,'RPL_WHOISSERVER'],
-    [313,U,1,'RPL_WHOISOPERATOR'],
+    ['001',_,_,'RPL_WELCOME'],
+    ['002',_,_,'RPL_YOURHOST'],
+    ['003',_,_,'RPL_CREATED'],
+    ['004',_,_,'RPL_MYINFO'],
+    ['005',_,_,'RPL_ISUPPORT'],
 
-    [317,U,1,'RPL_WHOISACCOUNT'],
-    [318,U,1,'RPL_ENDOFWHOIS'],
-    
-    [324,C,1,'RPL_CHANNELMODEIS'],
-    [330,U,1,'RPL_WHOISACCOUNT'],
+    ['311',U,1,'RPL_WHOISUSER'],
+    ['312',U,1,'RPL_WHOISSERVER'],
+    ['313',U,1,'RPL_WHOISOPERATOR'],
 
-    [332,C,1,'RPL_TOPIC'],
-    [333,C,1,'RPL_TOPICWHOTIME'],
+    ['317',U,1,'RPL_WHOISIDLE'],
+    ['318',U,1,'RPL_ENDOFWHOIS'],
+    ['319',U,1,'RPL_WHOISCHANNELS'],
+
+    ['324',C,1,'RPL_CHANNELMODEIS'],
+    ['330',U,1,'RPL_WHOISACCOUNT'],
+
+    ['331',C,1,'RPL_NOTOPIC'],
+    ['332',C,1,'RPL_TOPIC'],
+    ['333',C,1,'RPL_TOPICWHOTIME'],
    
-    [353,C,2,'RPL_WHOSPCRPL'],
+    ['353',C,2,'RPL_WHOSPCRPL'],
 
-    [366,C,1,'RPL_ENDOFNAMES'],
+    ['366',C,1,'RPL_ENDOFNAMES'],
     
 // Commands
     ['JOIN',        C,0],
