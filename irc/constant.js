@@ -82,6 +82,12 @@ var rr = {
 for ( var i = 0; i < _rc_data.length; i++ ) {
     var v = _rc_data[i];
     if ( v[3] ) {
+        if ( rc_out[v[0]] )
+            throw "Code: " + v[3] + " trying to replace "
+                + rc_out[v[0]] + " on " + v[0]; 
+        if ( rc_out[v[3]] )
+            throw "Code: " + v[0] + " trying to replace "
+                + rc_out[v[3]] + " on " + v[3]; 
         rc_out[v[0]] = v[3];
         rc_out[v[3]] = v[0];
     }
