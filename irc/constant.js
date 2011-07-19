@@ -53,6 +53,10 @@ var ERROR_CODES = new _twm({
 });
 
 var RESPONSE_CODES = new _twm({
+    RPL_WHOISUSER: 311,
+    RPL_WHOISSERVER: 312,
+    RPL_ENDOFWHOIS: 318,
+
     RPL_TOPIC: 332,
     RPL_NAMEREPLY: 353,
 });

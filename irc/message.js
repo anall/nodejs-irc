@@ -6,10 +6,10 @@ function Message(data) {
 
     var idx = data.indexOf(" ");
     if (data.charAt(0) == ':' && idx != -1) {
-        NickParts.call(this,data.substr(1,idx-1));
+        this.source = NickParts.fromSource(data.substr(1,idx-1));
         data = data.substr(idx+1);
     } else {
-        NickParts.call(this);
+        this.source = undefined;
     }
 
     var parts = [];
@@ -31,6 +31,10 @@ function Message(data) {
     this.command = parts.shift();
     this.args = parts;
 }
-util.inherits(Message,NickParts);
-
 exports.Message = Message;
+
+Message.prototype.getUser = function(svr) {
+    if ( this.source )
+        return this.source.getUser(svr);
+    return undefined;
+}
