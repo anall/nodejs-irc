@@ -4,7 +4,7 @@ var NickParts = require('./nick_parts.js').NickParts;
 
 var _const = require("./constant.js");
 var ERROR_CODES = _const.ERROR_CODES;
-var RESPONSE_CODES = _const.RESPONSE_CODES;
+var RC = _const.RESPONSE_CODES;
 
 function Channel(_client, channel) {
     this._client = _client;
@@ -20,17 +20,59 @@ util.inherits(Channel, EventEmitter);
 exports.Channel = Channel;
 
 Channel._messages = {
-    324: 1, // RPL_CHANNELMODEIS
-    332: 1, // RPL_TOPIC
-    333: 1, // RPL_TOPICWHOTIME
-    353: 2, // RPL_WHOSPCRPL
-    366: 1, // RPL_ENDOFNAMES
-
     'JOIN': 0,
     'TOPIC': 0,
     'PART': 0,
     'MODE': 0,
 };
+
+Channel._messages = _const.__rprase([
+    [RC.RPL_CHANNELMODEIS, 1, function (message) {  // 324
+        this.modes = {};
+        this._parseModeMessage(message,2);
+    }],
+    [RC.RPL_TOPIC, 1, function (message) {          // 332
+        this.topic.text = message.args[2];
+    }],
+    [RC.RPL_TOPICWHOTIME, 1, function(message) {    // 333
+        this.topic.set = new Date(message.args[3] * 1000);
+        this.topic.set_by = NickParts.fromSource(message.args[2]);
+    }],
+    [RC.RPL_WHOSPCRPL, 2, function(message) {       // 353
+        var data = message.args[3];
+        var parts = data.split(" ");
+        for ( var i = 0; i < parts.length; i++ ) {
+            var un = parts[i];
+            var chr = "";
+            if ( ! un.match(/^[a-zA-Z0-9_]/) ) {
+                chr = un.charAt(0);
+                un = un.substr(1);
+            }
+            this._client.getUser(un,1);
+            un = un.toLowerCase();
+            this.members[un] = {};
+            if ( chr == '@' )
+                this.members[un].op = 1;
+            else if ( chr == '%' )
+                this.members[un].halfop = 1;
+            else if ( chr == '+' )
+                this.members[un].voice = 1;
+        }
+    }],
+    [RC.RPL_ENDOFNAMES, 1, function(message) {      // 366
+        if ( this._pending ) {
+            this._client.quote("MODE " + this.channel);
+            this._pending = 0;
+            this.emit('synced');
+        }
+    }],
+],{
+    'JOIN': [0],
+    'TOPIC': [0],
+    'PART': [0],
+    'MODE': [0],
+});
+
 
 Channel.prototype.join = function(key) {
     if ( this._joined ) return 0;
@@ -52,7 +94,9 @@ Channel.prototype._reset = function() {
 }
 
 Channel.prototype.gotMessage = function(message) {
-    if ( message.command == "JOIN" ) {
+    if ( Channel._messages.hasOwnProperty(message.command) && Channel._messages[message.command][1] ) {
+        Channel._messages[message.command][1].call(this,message);
+    } else if ( message.command == "JOIN" ) {
         if ( ! this._joined ) {
             this.channel = message.args[0];
             this._joined = 1;
@@ -63,40 +107,6 @@ Channel.prototype.gotMessage = function(message) {
             this.emit('joined',message);
             this._client.emit('joined',this,message);
         }
-    } else if ( message.command == RESPONSE_CODES.RPL_TOPIC ) {
-        this.topic.text = message.args[2];
-    } else if ( message.command == "333" ) {
-        this.topic.set = new Date(message.args[3] * 1000);
-        this.topic.set_by = NickParts.fromSource(message.args[2]);
-    } else if ( message.command == "353" ) {
-        var data = message.args[3];
-        var parts = data.split(" ");
-        for ( var i = 0; i < parts.length; i++ ) {
-            var un = parts[i];
-            var chr = "";
-            if ( ! un.match(/^[a-zA-Z0-9_]/) ) {
-                chr = un.charAt(0);
-                un = un.substr(1);
-            }
-            this._client.getUser(un,1);
-            un = un.toLowerCase();
-            this.members[un] = {};
-            if ( chr == '@' )
-                this.members[un].op = 1;
-            else if ( chr == '%' )
-                this.members[un].halfop = 1;
-            else if ( chr == '+' )
-                this.members[un].voice = 1;
-        }
-    } else if ( message.command == "366" ) {
-        if ( this._pending ) {
-            this._client.quote("MODE " + this.channel);
-            this._pending = 0;
-            this.emit('synced');
-        }
-    } else if ( message.command == "324" ) {
-        this.modes = {};
-        this._parseModeMessage(message,2);
     } else if ( message.command == "MODE" ) {
         this._parseModeMessage(message,1);
     } else if ( message.command == "TOPIC" ) {

@@ -5,6 +5,16 @@ function _twm(data) {
     }
 }
 
+exports.__rprase = function(d,ov) {
+    if ( !ov ) ov = {};
+    for ( var i = 0; i < d.length; i++ ) {
+        var rpos = d[i].shift();
+        if ( !rpos ) throw "Failure!";
+        ov[rpos] = d[i];
+    }
+    return ov;
+}
+
 var ERROR_CODES = new _twm({
     ERR_NOSUCHNICK: 401,
     ERR_NOSUCHSERVER: 402,
@@ -56,9 +66,14 @@ var RESPONSE_CODES = new _twm({
     RPL_WHOISUSER: 311,
     RPL_WHOISSERVER: 312,
     RPL_ENDOFWHOIS: 318,
+    RPL_CHANNELMODEIS: 324,
+    RPL_WHOISACCOUNT: 330,
 
     RPL_TOPIC: 332,
-    RPL_NAMEREPLY: 353,
+    RPL_TOPICWHOTIME: 333,
+    RPL_WHOSPCRPL: 353, // ircu
+
+    RPL_ENDOFNAMES: 366,
 });
 
 exports.ERROR_CODES = ERROR_CODES;

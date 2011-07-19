@@ -77,6 +77,14 @@ Client.prototype._reset = function() {
 
     this._channel = {};
     this._user = {};
+    this._support = {};
+
+    this._host = undefined;
+    this._version = undefined;
+    this._modes = {
+        user: undefined,
+        channel: undefined,
+    }
 }
 
 Client.prototype._connected = function() {
@@ -107,6 +115,79 @@ Client.prototype._attemptConnect = function() {
     }
 }
 
+function _valsToList(v) {
+    var rv = {};
+    for ( var i = 0; i < v.length; i++ )
+        rv[v.charAt(i)] = true;
+    return rv;
+}
+
+function _splitArgsList(v) {
+    var rv = {};
+    v = v.split(",");
+    for ( var i = 0; i < v.length; i++ ) {
+        var key = v[i];
+        var value = true;
+        var idx = key.indexOf(":");
+        if ( idx != -1 ) {
+            value = key.substr(idx+1);
+            key = key.substr(0,idx);
+        }
+        rv[key] = value;
+    }
+    return rv;
+}
+
+function _splitArgsValsList(v) {
+    var rv = {};
+    v = v.split(",");
+    for ( var i = 0; i < v.length; i++ ) {
+        var key = v[i];
+        var value = true;
+        var idx = key.indexOf(":");
+        if ( idx != -1 ) {
+            value = key.substr(idx+1);
+            key = key.substr(0,idx);
+        }
+        for ( var j = 0; j < key.length; j++ )
+            rv[key.charAt(j)] = value;
+    }
+    return rv;
+}
+
+var _mogrifySupport = {
+    CHANTYPES: _valsToList,
+    CHANMODES: function(v) {
+        v = v.split(",");
+        return {
+            list: _valsToList(v[0]),
+            always: _valsToList(v[1]),
+            set: _valsToList(v[2]),
+            never: _valsToList(v[3])
+        };
+    },
+    CHANLIMIT: _splitArgsValsList,
+    MAXLIST: _splitArgsValsList,
+    TARGMAX: _splitArgsList,
+    STATUSMSG: _valsToList,
+};
+
+Client.prototype._parseIsSupport = function(data) {
+    var x = data.args.slice(1);
+    for ( var i = 0; i < x.length-1; i++ ) {
+        var key = x[i];
+        var value = true;
+        var idx = key.indexOf("=");
+        if ( idx != -1 ) {
+            value = key.substr(idx+1);
+            key = key.substr(0,idx);
+        }
+        if ( _mogrifySupport.hasOwnProperty(key) )
+            value = _mogrifySupport[key](value);
+        this._support[key] = value;
+    }
+}
+
 Client.prototype._gotData = function(data) { 
     var message = new Message(data);
     this.emit('rawMessage',message);
@@ -126,17 +207,27 @@ Client.prototype._gotData = function(data) {
             this._preconnect = 0;
             this.emit('connected');
             this._ownUser = this.getUser(this._nickname,1);
+            this._support = {};
         }
     } else {
         var sender;
         if ( sender = message.getUser(this) )
             sender.updateForMessage(message);
-        if ( message.command == "PING" ) {
+        if ( message.command == '004' ) {
+            this._host = message.args[1];
+            this._version = message.args[2];
+            this._modes = {
+                user: _valsToList(message.args[3]),
+                channel: _valsToList(message.args[4]),
+            };
+        } else if ( message.command == '005' ) {
+            this._parseIsSupport(message);
+        } else if ( message.command == "PING" ) {
             this.quote("PONG :" + message.args[0]);
         } else if ( Channel._messages.hasOwnProperty(message.command) ) {
-            this.getChannel(message.args[Channel._messages[message.command]]).gotMessage(message);
+            this.getChannel(message.args[Channel._messages[message.command][0]]).gotMessage(message);
         } else if ( User._messages.hasOwnProperty(message.command) ) {
-            this.getUser(message.args[User._messages[message.command]]).gotMessage(message);
+            this.getUser(message.args[User._messages[message.command][0]]).gotMessage(message);
         } else if ( message.command == "NICK" ) {
             var source = message.source.nickname.toLowerCase();
             var dest = message.args[0].toLowerCase();
