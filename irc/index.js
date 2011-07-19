@@ -7,38 +7,7 @@ var ERROR_CODES = exports.ERROR_CODES = _const.ERROR_CODES;
 var RESPONSE_CODES = exports.RESPONSE_CODES = _const.RESPONSE_CODES;
 var CR = '\n';
 
-function LineTokenizer() {
-    EventEmitter.call(this);
-
-    this._data = "";
-}
-util.inherits(LineTokenizer,EventEmitter);
-
-LineTokenizer.prototype.feed = function(data) {
-    this._data += data;
-
-    if ( this._busy )
-        return;
-
-    this._busy = 1;
-    var idx;
-
-    while ( this._data.length > 0 ) {
-        if ( ( idx = this._data.indexOf("\r\n") ) != -1 ) {
-            this.emit("line",this._data.substr(0,idx));
-            this._data = this._data.substr(idx+2);
-        } else if ( ( idx = this._data.indexOf("\n") ) != -1 ) {
-            this.emit("line",this._data.substr(0,idx));
-            this._data = this._data.substr(idx+1);
-        } else if ( ( idx = this._data.indexOf("\r") ) != -1 ) {
-            this.emit("line",this._data.substr(0,idx));
-            this._data = this._data.substr(idx+1);
-        } else {
-            break;
-        }
-    }
-    this._busy = 0;
-}
+var LineTokenizer = require('./line_tokenizer.js').LineTokenizer;
 
 function IRCMessage(data) {
     this._raw = data;
