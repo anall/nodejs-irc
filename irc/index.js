@@ -9,6 +9,7 @@ var _rd = _const.RESPONSE_DISPATCH;
 
 var LineTokenizer = require('./line_tokenizer.js').LineTokenizer;
 var Message = require('./message.js').Message;
+var CtcpMessage = require('./message.js').CtcpMessage;
 var NickParts = require('./nick_parts.js').NickParts;
 
 var User = exports.User = require('./user.js').User;
@@ -191,6 +192,10 @@ Client.prototype._parseIsSupport = function(data) {
 
 Client.prototype._gotData = function(data) { 
     var message = new Message(data);
+    this._gotMessage(message);
+}
+
+Client.prototype._gotMessage = function(message) {
     this.emit('rawMessage',message);
     if ( this._preconnect ) {
         if ( message.command == ERROR_CODES.ERR_NONICKNAMEGIVEN || message.command == ERROR_CODES.ERR_ERRORNEUSNICKNAME ) {
@@ -250,14 +255,34 @@ Client.prototype._gotData = function(data) {
                 this._channel[ch].handleUserMessage(message);
         } else if ( message.command == "PRIVMSG" ) {
             var target = message.args[0];
-            if ( target.match(/^[a-zA-Z0-9_]/) ) {
-                message.getUser(this).updateForMessage(message);
-                this.getUser(message.args[0]).gotMessage(message);
+            var msg = message.args[1];
+            var IS_CTCP = msg.charAt(0) == '\001';
+            if ( IS_CTCP ) {
+                var ctcp = new CtcpMessage(message.args[1],message);
+                this._gotCtcp(ctcp);
             } else {
-                message.getUser(this).updateForMessage(message);
-                this.getChannel(message.args[0]).gotMessage(message);
+                if ( target.match(/^[a-zA-Z0-9_]/) ) {
+                    message.getUser(this).updateForMessage(message);
+                    this._handleSelfMessage(message);
+                } else {
+                    message.getUser(this).updateForMessage(message);
+                    this.getChannel(message.args[0]).gotMessage(message);
+                }
             }
         }
+    }
+}
+
+Client.prototype._gotCtcp = function(message) {
+    this.emit('rawCtcp',message);
+    if ( message.command == "VERSION" )
+        message.reply(this,"node.js IRC");
+    else if ( message.command == "TIME" )
+        message.reply(this,new Date().toString());
+}
+
+Client.prototype._handleSelfMessage = function(message) {
+    if ( message.command == "PRIVMSG" ) {
     }
 }
 

@@ -1,6 +1,4 @@
 function NickParts() {
-    this.source = undefined;
-
     this.nickname = undefined;
     this.username = undefined;
     this.hostname = undefined;

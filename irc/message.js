@@ -1,8 +1,12 @@
 var util = require('util');
 var NickParts = require('./nick_parts.js').NickParts;
 
-function Message(data) {
+//FIXME: HANDLE MQUOTE
+
+function Message(data,parent) {
+    this.ctcp = false;
     this._raw = data;
+    this._parent = parent;
 
     var idx = data.indexOf(" ");
     if (data.charAt(0) == ':' && idx != -1) {
@@ -28,6 +32,10 @@ function Message(data) {
         }
     };
 
+    if ( parent && !this.source ) {
+        this.source = parent.source;
+    }
+
     this.command = parts.shift();
     this.args = parts;
 }
@@ -37,4 +45,24 @@ Message.prototype.getUser = function(svr) {
     if ( this.source )
         return this.source.getUser(svr);
     return undefined;
+}
+
+function CtcpMessage(data,parent) {
+    if ( data.charAt(0) == '\001' ) {
+        data = data.substr(1);
+        var idx = data.indexOf('\001');
+        if ( idx != -1 )
+            data = data.substr(0,idx);
+    } else {
+        throw("Not a CTCP message");
+    }
+    Message.call(this,data,parent);
+    this.ctcp = true;
+}
+util.inherits(CtcpMessage,Message);
+exports.CtcpMessage = CtcpMessage;
+
+CtcpMessage.prototype.reply = function(client, message) {
+    if ( !this.source.nickname ) throw "Cannot reply";
+    client.quote("NOTICE " + this.source.nickname + " :\001" + this.command + " " + message + "\001");
 }
