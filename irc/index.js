@@ -212,6 +212,7 @@ Client.prototype._gotData = function(data) {
         }
     } else {
         var sender;
+        var dsp = _rd.getCodeFor(message.command);
         if ( sender = message.getUser(this) )
             sender.updateForMessage(message);
         if ( message.command == '004' ) {
@@ -225,19 +226,17 @@ Client.prototype._gotData = function(data) {
             this._parseIsSupport(message);
         } else if ( message.command == "PING" ) {
             this.quote("PONG :" + message.args[0]);
-        } else if ( _rd['C'].hasOwnProperty(message.command) ) {
-            this.getChannel(
-                message.args[_rd['C'][message.command]]).gotMessage(message);
-        } else if ( _rd['U'].hasOwnProperty(message.command) ) {
-            this.getUser(
-                message.args[_rd['U'][message.command]]).gotMessage(message);
-        } else if ( _rd['B'].hasOwnProperty(message.command) ) {
-            var target = message.args[0];
-            var pos = _rd['B'][message.command];
-            if ( target.match(/^[a-zA-Z0-9_]/) ) {
-                this.getUser(message.args[pos]).gotMessage(message);
-            } else {
-                this.getChannel(message.args[pos]).gotMessage(message);
+        } else if ( dsp ) {
+            if ( dsp[0] == 'C' ) {
+                this.getChannel(message.args[dsp[1]]).gotMessage(message);
+            } else if ( dsp[0] == 'U' ) {
+                this.getUser(message.args[dsp[1]]).gotMessage(message);
+            } else if ( dsp[0] == 'B' ) {
+                var target = message.args[dsp[1]];
+                if ( target.match(/^[a-zA-Z0-9_]/) )
+                    this.getUser(target).gotMessage(message);
+                else
+                    this.getChannel(target).gotMessage(message);
             }
         } else if ( message.command == "NICK" ) {
             var source = message.source.nickname.toLowerCase();

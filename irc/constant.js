@@ -10,6 +10,7 @@ var _rc_data = [
     ['004',_,_,'RPL_MYINFO'],
     ['005',_,_,'RPL_ISUPPORT'],
 
+    ['301',U,1,'RPL_AWAY'],
     ['311',U,1,'RPL_WHOISUSER'],
     ['312',U,1,'RPL_WHOISSERVER'],
     ['313',U,1,'RPL_WHOISOPERATOR'],
@@ -37,7 +38,16 @@ var _rc_data = [
     ['MODE',        B,0],
 ];
 
-exports.ERROR_CODES = new _twm({
+var _ec_data = [
+];
+
+var _valid_codes = {
+    C: 1,
+    U: 1,
+    B: 1,
+};
+
+var ec_out = _twm({
     ERR_NOSUCHNICK: 401,
     ERR_NOSUCHSERVER: 402,
     ERR_NOSUCHCHANNEL: 403,
@@ -85,38 +95,49 @@ exports.ERROR_CODES = new _twm({
 });
 
 var rc_out = {};
-var rr = {
-    'U': {},
-    'C': {},
-    'B': {}
-};
 
-for ( var i = 0; i < _rc_data.length; i++ ) {
-    var v = _rc_data[i];
-    if ( v[3] ) {
-        if ( rc_out[v[0]] )
-            throw "Code: " + v[3] + " trying to replace "
-                + rc_out[v[0]] + " on " + v[0]; 
-        if ( rc_out[v[3]] )
-            throw "Code: " + v[0] + " trying to replace "
-                + rc_out[v[3]] + " on " + v[3]; 
-        rc_out[v[0]] = v[3];
-        rc_out[v[3]] = v[0];
-    }
-    if ( v[1] ) {
-        if ( !rr[v[1]] )
-            throw "Invalid code " + v[1] + " for " + v[0] + " ("+v[3]+")";
-        rr[v[1]][v[0]] = v[2];
-    }
+function __rr() { this._data = {}; }
+
+var rr = new __rr();
+
+__rr.prototype.getCodeFor = function(key) {
+    if ( this._data.hasOwnProperty(key) )
+        return this._data[key];
+    return undefined;
 }
+_process(_rc_data,rc_out);
+_process(_ec_data,ec_out);
 
+exports.ERROR_CODES = ec_out;
 exports.RESPONSE_CODES = rc_out;
 exports.RESPONSE_DISPATCH = rr;
 
 function _twm(data) {
+    var rv = {};
     for ( var x in data ) {
-        this[x] = data[x];
-        this[data[x]] = x;
+        rv[x] = data[x];
+        rv[data[x]] = x;
     }
+    return rv;
 }
 
+function _process(inD, outD) {
+    for ( var i = 0; i < inD.length; i++ ) {
+        var v = inD[i];
+        if ( v[3] ) {
+            if ( outD[v[0]] )
+                throw "Code: " + v[3] + " trying to replace "
+                    + outD[v[0]] + " on " + v[0];
+            if ( outD[v[3]] )
+                throw "Code: " + v[0] + " trying to replace "
+                    + outD[v[3]] + " on " + v[3];
+            outD[v[0]] = v[3];
+            outD[v[3]] = v[0];
+        }
+        if ( v[1] ) {
+            if ( !_valid_codes[[v[1]]] ) throw "Type " + v[1] + " not valid for " + v[0];
+            if ( rr._data[v[0]] ) throw "Duplicate code for " + v[0];
+            rr._data[v[0]] = [v[1],v[2]];
+        }
+    }
+}
